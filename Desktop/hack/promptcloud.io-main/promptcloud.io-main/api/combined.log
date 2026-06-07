@@ -1,0 +1,261 @@
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-05T12:37:56.445Z"}
+{"level":"info","message":"Telegram Bot: Configured","timestamp":"2026-06-05T12:37:56.449Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-05T12:37:56.450Z"}
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-05T12:44:46.453Z"}
+{"level":"info","message":"Telegram Bot: Configured","timestamp":"2026-06-05T12:44:46.455Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-05T12:44:46.455Z"}
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-05T12:48:05.361Z"}
+{"level":"info","message":"Telegram Bot: Configured","timestamp":"2026-06-05T12:48:05.364Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-05T12:48:05.364Z"}
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-05T12:49:42.043Z"}
+{"level":"info","message":"Telegram Bot: Configured","timestamp":"2026-06-05T12:49:42.045Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-05T12:49:42.045Z"}
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-05T12:55:39.673Z"}
+{"level":"info","message":"Telegram Bot: Configured","timestamp":"2026-06-05T12:55:39.675Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-05T12:55:39.675Z"}
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-05T12:58:29.063Z"}
+{"level":"info","message":"Telegram Bot: Configured","timestamp":"2026-06-05T12:58:29.066Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-05T12:58:29.066Z"}
+{"level":"info","message":"Telegram polling started (every 5 seconds)","timestamp":"2026-06-05T13:11:39.353Z"}
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-05T13:11:39.358Z"}
+{"level":"info","message":"Telegram Bot: Configured","timestamp":"2026-06-05T13:11:39.359Z"}
+{"level":"info","message":"Mode: Polling (no webhook needed)","timestamp":"2026-06-05T13:11:39.359Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-05T13:11:39.359Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:11:45.020Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:11:49.623Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:11:54.542Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:11:59.652Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:12:04.662Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:12:09.678Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:12:14.595Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:12:19.621Z"}
+{"level":"info","message":"Telegram polling started (every 5 seconds)","timestamp":"2026-06-05T13:12:22.824Z"}
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-05T13:12:22.835Z"}
+{"level":"info","message":"Telegram Bot: Configured","timestamp":"2026-06-05T13:12:22.837Z"}
+{"level":"info","message":"Mode: Polling (no webhook needed)","timestamp":"2026-06-05T13:12:22.838Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-05T13:12:22.839Z"}
+{"level":"info","message":"Telegram polling started (every 5 seconds)","timestamp":"2026-06-05T13:13:35.202Z"}
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-05T13:13:35.206Z"}
+{"level":"info","message":"Telegram Bot: Configured","timestamp":"2026-06-05T13:13:35.206Z"}
+{"level":"info","message":"Mode: Polling (no webhook needed)","timestamp":"2026-06-05T13:13:35.206Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-05T13:13:35.207Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:13:40.926Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:13:45.404Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:13:50.443Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:13:55.460Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:14:00.479Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:14:05.500Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:14:10.529Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:14:15.443Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:14:20.551Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:14:25.565Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:14:30.481Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:14:35.498Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:14:40.516Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:14:45.499Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:14:50.553Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:14:55.566Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:15:00.585Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:15:05.603Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:15:10.525Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:15:15.634Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:15:20.552Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:15:25.571Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:15:30.602Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:15:35.605Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:15:40.625Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-05T13:15:45.642Z"}
+{"level":"info","message":"Telegram polling started (every 5 seconds)","timestamp":"2026-06-05T13:16:46.135Z"}
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-05T13:16:46.139Z"}
+{"level":"info","message":"Telegram Bot: Configured","timestamp":"2026-06-05T13:16:46.140Z"}
+{"level":"info","message":"Mode: Polling (no webhook needed)","timestamp":"2026-06-05T13:16:46.140Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-05T13:16:46.140Z"}
+{"level":"info","message":"Telegram polling started (every 5 seconds)","timestamp":"2026-06-05T13:25:55.104Z"}
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-05T13:25:55.112Z"}
+{"level":"info","message":"Telegram Bot: Configured","timestamp":"2026-06-05T13:25:55.113Z"}
+{"level":"info","message":"Mode: Polling (no webhook needed)","timestamp":"2026-06-05T13:25:55.113Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-05T13:25:55.113Z"}
+{"level":"info","message":"Telegram polling started (every 5 seconds)","timestamp":"2026-06-06T19:12:54.477Z"}
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-06T19:12:54.502Z"}
+{"level":"info","message":"Telegram Bot: Configured","timestamp":"2026-06-06T19:12:54.505Z"}
+{"level":"info","message":"Mode: Polling (no webhook needed)","timestamp":"2026-06-06T19:12:54.507Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-06T19:12:54.509Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:00.073Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:04.686Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:09.709Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:14.704Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:19.703Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:24.724Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:29.723Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:34.750Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:39.744Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:44.750Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:49.754Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:55.163Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:13:59.757Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:14:04.795Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:14:09.779Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:14:14.784Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:14:19.794Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:14:24.807Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:14:29.819Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:14:34.812Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:14:39.820Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:14:44.852Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:14:49.831Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:14:54.836Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:14:59.841Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:15:04.973Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:15:09.933Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:15:14.936Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:15:19.910Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:15:24.921Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:15:29.955Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:15:34.925Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:15:39.942Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:15:44.960Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:15:49.949Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:15:54.945Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:15:59.949Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:16:04.981Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:16:09.980Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:16:14.987Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:16:20.026Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:16:24.972Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:16:29.985Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:16:35.075Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:16:39.992Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:16:45.014Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:16:50.012Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:16:55.034Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:17:00.023Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:17:05.048Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:17:10.038Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:17:15.043Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:17:20.057Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:17:25.095Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:17:30.080Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:17:35.087Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:17:40.088Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:17:45.097Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:17:50.099Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:17:55.107Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:18:00.115Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:18:05.121Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:18:10.161Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:18:15.136Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:18:20.155Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:18:25.158Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:18:30.156Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:18:35.169Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:18:40.205Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:18:45.715Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:18:50.192Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:18:55.189Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:19:00.187Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:19:05.225Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:19:10.201Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:19:15.200Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:19:20.213Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:19:25.234Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:19:30.222Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:19:35.229Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:19:40.236Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:19:45.252Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:19:50.251Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:19:55.243Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:20:00.272Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:20:05.267Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:20:10.298Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:20:15.276Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:20:20.276Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:20:25.291Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:20:30.286Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:20:35.313Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:20:40.304Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:20:45.320Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:20:50.349Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:20:55.350Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:21:00.379Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:21:05.370Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:21:10.397Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:21:15.383Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:21:20.399Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:21:25.392Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:21:30.486Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:21:35.423Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:21:40.425Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:21:45.442Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:21:50.484Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:21:55.505Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:22:00.637Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:22:05.507Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:22:10.536Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:22:15.525Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:22:20.523Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:22:25.551Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:22:30.539Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:22:35.546Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:22:40.562Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:22:45.572Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:22:50.573Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:22:55.567Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:23:00.584Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:23:05.570Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:23:10.586Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:23:15.593Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:23:20.613Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:23:25.635Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:23:30.623Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:23:35.640Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:23:40.645Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:23:45.647Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:23:50.649Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:23:55.653Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:24:00.675Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:24:05.671Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:24:10.684Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:24:15.690Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:24:20.696Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:24:25.699Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:24:30.727Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:24:35.704Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:24:40.722Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:24:45.733Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:24:50.741Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:24:55.733Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:25:00.738Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:25:05.763Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:25:10.753Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:25:15.774Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:25:20.778Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:25:25.782Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:25:30.794Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:25:35.810Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:25:40.811Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:25:45.818Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:25:50.824Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:25:55.829Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:26:00.838Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:26:05.835Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:26:10.838Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:26:15.840Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:26:20.840Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:26:25.846Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:26:30.856Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:26:35.871Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:26:40.875Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:26:45.877Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:26:50.891Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:26:55.898Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:27:00.906Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:27:05.962Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:27:10.919Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:27:15.935Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:27:20.942Z"}
+{"level":"error","message":"Polling error:","timestamp":"2026-06-06T19:27:25.941Z"}
+{"level":"warn","message":"Telegram polling disabled: configure TELEGRAM_BOT_TOKEN in api/.env","timestamp":"2026-06-06T19:28:12.352Z"}
+{"level":"info","message":"PromptCloud API v2.0.0 running on port 3001","timestamp":"2026-06-06T19:28:12.379Z"}
+{"level":"info","message":"Telegram Bot: NOT CONFIGURED","timestamp":"2026-06-06T19:28:12.382Z"}
+{"level":"info","message":"Mode: API only","timestamp":"2026-06-06T19:28:12.384Z"}
+{"level":"info","message":"Proxmox: https://your-proxmox-server:8006","timestamp":"2026-06-06T19:28:12.385Z"}
