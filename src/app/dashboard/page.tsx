@@ -5,6 +5,23 @@ import { useRouter } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
+// Pricing constants (match backend billing.js)
+const PRICING = {
+  cpu_per_core_hour: 5,
+  ram_per_gb_hour: 2,
+  storage_per_gb_hour: 0.5,
+};
+
+function calculateCost(cpu: number, ramMB: number, diskGB: number = 10) {
+  const ramGB = ramMB / 1024;
+  const hourly = cpu * PRICING.cpu_per_core_hour + ramGB * PRICING.ram_per_gb_hour + diskGB * PRICING.storage_per_gb_hour;
+  return {
+    hourly,
+    perSecond: hourly / 3600,
+    monthly: hourly * 24 * 30,
+  };
+}
+
 // Load Razorpay checkout script
 declare global {
   interface Window {
@@ -58,6 +75,13 @@ export default function DashboardPage() {
   const [selectedNetwork, setSelectedNetwork] = useState("");
   const [selectedVM, setSelectedVM] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // DB deploy modal state
+  const [showDBModal, setShowDBModal] = useState(false);
+  const [dbName, setDbName] = useState("");
+  const [dbPlan, setDbPlan] = useState("");
+  const [dbZone, setDbZone] = useState("");
+  const [dbNetwork, setDbNetwork] = useState("");
+  const [dbLoading, setDbLoading] = useState(false);
 
   useEffect(() => {
     const t = localStorage.getItem("promptcloud_token");
@@ -332,6 +356,46 @@ export default function DashboardPage() {
       alert("Create volume error: " + (e as Error).message);
     } finally {
       setVolumeLoading(false);
+    }
+  };
+
+  const handleDeployDB = async () => {
+    if (!dbName || !dbPlan || !dbZone || !dbNetwork || !token) {
+      alert("Please fill in all fields");
+      return;
+    }
+    setDbLoading(true);
+    try {
+      // Use deployVirtualMachine with DB template (PostgreSQL/Ubuntu)
+      const dbTemplate = deployTemplates.find((t: any) => t.name?.toLowerCase().includes("postgres") || t.ostypename?.toLowerCase().includes("ubuntu"));
+      const params = new URLSearchParams({
+        apiKey: csKeys.apiKey,
+        secretKey: csKeys.secretKey,
+        command: "deployVirtualMachine",
+        response: "json",
+        serviceofferingid: dbPlan,
+        templateid: dbTemplate?.id || selectedTemplate,
+        zoneid: dbZone,
+        networkids: dbNetwork,
+        name: dbName,
+        displayname: dbName,
+      });
+      const res = await fetch(`${API_BASE}/api/cloudstack-proxy?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.deployvirtualmachineresponse?.id) {
+        alert(`DB "${dbName}" deployed successfully!`);
+        setShowDBModal(false);
+        setDbName("");
+        loadCloudStackData();
+      } else {
+        alert("DB deploy failed: " + JSON.stringify(data));
+      }
+    } catch (e) {
+      alert("DB deploy error: " + (e as Error).message);
+    } finally {
+      setDbLoading(false);
     }
   };
 
@@ -845,7 +909,7 @@ export default function DashboardPage() {
               <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#f0f0ff", margin: 0 }}>Managed Kubernetes Clusters</h3>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <button onClick={() => setShowDeployModal(true)} style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)", border: "none", borderRadius: "8px", padding: "4px 12px", fontSize: "11px", fontWeight: 600, color: "#fff", cursor: "pointer" }}>+ Deploy DB VM</button>
+                  <button onClick={() => setShowDBModal(true)} style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)", border: "none", borderRadius: "8px", padding: "4px 12px", fontSize: "11px", fontWeight: 600, color: "#fff", cursor: "pointer" }}>+ Deploy DB VM</button>
                   <button onClick={loadCloudStackData} style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(168,85,247,0.3)", borderRadius: "8px", padding: "4px 12px", fontSize: "11px", fontWeight: 600, color: "#e0aaff", cursor: "pointer" }}>↻ Refresh</button>
                 </div>
               </div>
@@ -915,43 +979,113 @@ export default function DashboardPage() {
       {/* Deploy Modal */}
       {showDeployModal && (
         <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }} onClick={() => setShowDeployModal(false)}>
-          <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px", padding: "28px", maxWidth: "480px", width: "90%", maxHeight: "90vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h3 style={{ fontSize: "17px", fontWeight: 600, color: "#f0f0ff", margin: 0 }}>Deploy a New VM</h3>
-              <button onClick={() => setShowDeployModal(false)} style={{ background: "none", border: "none", color: "rgba(160,160,192,0.5)", fontSize: "20px", cursor: "pointer" }}>×</button>
+          <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px", maxWidth: "800px", width: "90%", maxHeight: "90vh", overflowY: "auto", display: "flex" }} onClick={(e) => e.stopPropagation()}>
+            {/* Left: Form */}
+            <div style={{ flex: 1, padding: "28px", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 style={{ fontSize: "17px", fontWeight: 600, color: "#f0f0ff", margin: 0 }}>Deploy a New VM</h3>
+                <button onClick={() => setShowDeployModal(false)} style={{ background: "none", border: "none", color: "rgba(160,160,192,0.5)", fontSize: "20px", cursor: "pointer" }}>×</button>
+              </div>
+              <p style={{ fontSize: "13px", color: "rgba(160,160,192,0.4)", marginBottom: "20px" }}>Fetches live plans and regions from CloudStack.</p>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>VM Name</label>
+                <input type="text" placeholder="e.g. my-server" value={deployName} onChange={(e) => setDeployName(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }} />
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Plan</label>
+                <select value={selectedPlan} onChange={(e) => setSelectedPlan(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
+                  {deployPlans.map((p: any, i: number) => <option key={p.id + '-' + i} value={p.id}>{p.name} ({p.cpunumber} vCPU · {p.memory / 1024}GB)</option>)}
+                </select>
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>OS Template</label>
+                <select value={selectedTemplate} onChange={(e) => setSelectedTemplate(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
+                  {deployTemplates.map((t: any, i: number) => <option key={t.id + '-' + i} value={t.id}>{t.name} ({t.ostypename || t.hypervisor})</option>)}
+                </select>
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Zone</label>
+                <select value={selectedZone} onChange={(e) => setSelectedZone(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
+                  {deployZones.map((z: any, i: number) => <option key={z.id + '-' + i} value={z.id}>{z.name}</option>)}
+                </select>
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Network</label>
+                <select value={selectedNetwork} onChange={(e) => setSelectedNetwork(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
+                  {deployNetworks.map((n: any, i: number) => <option key={n.id + '-' + i} value={n.id}>{n.name} ({n.type})</option>)}
+                </select>
+              </div>
+              <button onClick={handleDeploy} disabled={deployLoading || balance.inr < (() => {
+                const plan = deployPlans.find((p: any) => p.id === selectedPlan);
+                return plan ? calculateCost(plan.cpunumber || 1, plan.memory || 1024, plan.rootdisksize || 10).hourly : 0;
+              })()} style={{ width: "100%", height: "48px", background: "linear-gradient(135deg, #7c3aed, #a855f7)", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: 600, color: "#fff", cursor: "pointer", opacity: deployLoading ? 0.6 : 1 }}>
+                {deployLoading ? "Deploying..." : "🚀 Deploy Now"}
+              </button>
+              {(() => {
+                const plan = deployPlans.find((p: any) => p.id === selectedPlan);
+                const cost = plan ? calculateCost(plan.cpunumber || 1, plan.memory || 1024, plan.rootdisksize || 10).hourly : 0;
+                if (balance.inr < cost) {
+                  return (
+                    <div style={{ marginTop: "12px", padding: "10px 14px", background: "rgba(255,71,87,0.08)", border: "1px solid rgba(255,71,87,0.2)", borderRadius: "10px", fontSize: "12px", color: "#ff4757" }}>
+                      ⚠️ Insufficient funds. Need ₹{cost.toFixed(2)}. Your balance: ₹{balance.inr.toFixed(2)}.
+                      <a href="/wallet" style={{ color: "#a78bfa", textDecoration: "underline" }}>Top up →</a>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
-            <p style={{ fontSize: "13px", color: "rgba(160,160,192,0.4)", marginBottom: "20px" }}>Fetches live plans and regions from CloudStack.</p>
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>VM Name</label>
-              <input type="text" placeholder="e.g. my-server" value={deployName} onChange={(e) => setDeployName(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }} />
-            </div>
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Plan</label>
-              <select value={selectedPlan} onChange={(e) => setSelectedPlan(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
-                {deployPlans.map((p: any, i: number) => <option key={p.id + '-' + i} value={p.id}>{p.name} ({p.cpunumber} vCPU · {p.memory / 1024}GB)</option>)}
-              </select>
-            </div>
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>OS Template</label>
-              <select value={selectedTemplate} onChange={(e) => setSelectedTemplate(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
-                {deployTemplates.map((t: any, i: number) => <option key={t.id + '-' + i} value={t.id}>{t.name} ({t.ostypename || t.hypervisor})</option>)}
-              </select>
-            </div>
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Zone</label>
-              <select value={selectedZone} onChange={(e) => setSelectedZone(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
-                {deployZones.map((z: any, i: number) => <option key={z.id + '-' + i} value={z.id}>{z.name}</option>)}
-              </select>
-            </div>
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Network</label>
-              <select value={selectedNetwork} onChange={(e) => setSelectedNetwork(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
-                {deployNetworks.map((n: any, i: number) => <option key={n.id + '-' + i} value={n.id}>{n.name} ({n.type})</option>)}
-              </select>
-            </div>
-            <button onClick={handleDeploy} disabled={deployLoading} style={{ width: "100%", height: "48px", background: "linear-gradient(135deg, #7c3aed, #a855f7)", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: 600, color: "#fff", cursor: "pointer", opacity: deployLoading ? 0.6 : 1 }}>
-              {deployLoading ? "Deploying..." : "Deploy Now"}
-            </button>
+
+            {/* Right: Pricing Summary */}
+            {(() => {
+              const plan = deployPlans.find((p: any) => p.id === selectedPlan);
+              const zone = deployZones.find((z: any) => z.id === selectedZone);
+              const tpl = deployTemplates.find((t: any) => t.id === selectedTemplate);
+              const cost = plan ? calculateCost(plan.cpunumber || 1, plan.memory || 1024, plan.rootdisksize || 10) : null;
+              return (
+                <div style={{ width: "260px", padding: "28px", background: "rgba(255,255,255,0.02)", display: "flex", flexDirection: "column" }}>
+                  <h4 style={{ fontSize: "13px", fontWeight: 600, color: "rgba(160,160,192,0.5)", margin: "0 0 20px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Summary</h4>
+
+                  <div style={{ marginBottom: "16px" }}>
+                    <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Region</div>
+                    <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>{zone?.name || '—'}</div>
+                  </div>
+
+                  <div style={{ marginBottom: "16px" }}>
+                    <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Size</div>
+                    <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>{plan ? `${plan.name} · ${plan.cpunumber}vCPU` : '—'}</div>
+                    <div style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>{plan ? `${(plan.memory / 1024).toFixed(1)}GB RAM · ${plan.rootdisksize || 10}GB Disk` : ''}</div>
+                  </div>
+
+                  <div style={{ marginBottom: "16px" }}>
+                    <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>OS</div>
+                    <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>{tpl?.name || tpl?.displaytext || '—'}</div>
+                  </div>
+
+                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "16px", marginTop: "auto" }}>
+                    {cost && (
+                      <>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                          <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Per second</span>
+                          <span style={{ fontSize: "12px", color: "#f0f0ff" }}>₹{cost.perSecond.toFixed(4)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                          <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Per hour</span>
+                          <span style={{ fontSize: "12px", color: "#f0f0ff", fontWeight: 600 }}>₹{cost.hourly.toFixed(2)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+                          <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Est. monthly</span>
+                          <span style={{ fontSize: "14px", color: "#a78bfa", fontWeight: 700 }}>₹{Math.round(cost.monthly).toLocaleString('en-IN')}</span>
+                        </div>
+                        <div style={{ fontSize: "11px", color: "rgba(160,160,192,0.35)", lineHeight: 1.5 }}>
+                          Pay only for what you use. Billing stops on destroy.
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -990,29 +1124,186 @@ export default function DashboardPage() {
       {/* Create Volume Modal */}
       {showCreateVolumeModal && (
         <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }} onClick={() => setShowCreateVolumeModal(false)}>
-          <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px", padding: "28px", maxWidth: "480px", width: "90%" }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h3 style={{ fontSize: "17px", fontWeight: 600, color: "#f0f0ff", margin: 0 }}>Create Volume</h3>
-              <button onClick={() => setShowCreateVolumeModal(false)} style={{ background: "none", border: "none", color: "rgba(160,160,192,0.5)", fontSize: "20px", cursor: "pointer" }}>×</button>
+          <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px", maxWidth: "800px", width: "90%", maxHeight: "90vh", overflowY: "auto", display: "flex" }} onClick={(e) => e.stopPropagation()}>
+            {/* Left: Form */}
+            <div style={{ flex: 1, padding: "28px", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 style={{ fontSize: "17px", fontWeight: 600, color: "#f0f0ff", margin: 0 }}>Create Volume</h3>
+                <button onClick={() => setShowCreateVolumeModal(false)} style={{ background: "none", border: "none", color: "rgba(160,160,192,0.5)", fontSize: "20px", cursor: "pointer" }}>×</button>
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Volume Name</label>
+                <input type="text" placeholder="e.g. data-disk" value={volumeName} onChange={(e) => setVolumeName(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }} />
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Size (GB)</label>
+                <input type="number" min="1" max="1024" value={volumeSize} onChange={(e) => setVolumeSize(parseInt(e.target.value) || 10)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }} />
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Zone</label>
+                <select value={volumeZone} onChange={(e) => setVolumeZone(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
+                  <option value="">Select zone</option>
+                  {deployZones.map((z: any, i: number) => <option key={z.id + '-' + i} value={z.id}>{z.name}</option>)}
+                </select>
+              </div>
+              <button onClick={handleCreateVolume} disabled={volumeLoading || balance.inr < (volumeSize * PRICING.storage_per_gb_hour * 24)} style={{ width: "100%", height: "48px", background: "linear-gradient(135deg, #7c3aed, #a855f7)", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: 600, color: "#fff", cursor: "pointer", opacity: volumeLoading ? 0.6 : 1 }}>
+                {volumeLoading ? "Creating..." : "Create Volume"}
+              </button>
+              {balance.inr < (volumeSize * PRICING.storage_per_gb_hour * 24) && (
+                <div style={{ marginTop: "12px", padding: "10px 14px", background: "rgba(255,71,87,0.08)", border: "1px solid rgba(255,71,87,0.2)", borderRadius: "10px", fontSize: "12px", color: "#ff4757" }}>
+                  ⚠️ Insufficient funds. Need ₹{(volumeSize * PRICING.storage_per_gb_hour * 24).toFixed(2)}. Your balance: ₹{balance.inr.toFixed(2)}.
+                  <a href="/wallet" style={{ color: "#a78bfa", textDecoration: "underline" }}>Top up →</a>
+                </div>
+              )}
             </div>
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Volume Name</label>
-              <input type="text" placeholder="e.g. data-disk" value={volumeName} onChange={(e) => setVolumeName(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }} />
+
+            {/* Right: Pricing Summary */}
+            {(() => {
+              const zone = deployZones.find((z: any) => z.id === volumeZone);
+              const cost = calculateCost(0, 0, volumeSize);
+              return (
+                <div style={{ width: "260px", padding: "28px", background: "rgba(255,255,255,0.02)", display: "flex", flexDirection: "column" }}>
+                  <h4 style={{ fontSize: "13px", fontWeight: 600, color: "rgba(160,160,192,0.5)", margin: "0 0 20px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Summary</h4>
+
+                  <div style={{ marginBottom: "16px" }}>
+                    <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Region</div>
+                    <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>{zone?.name || '—'}</div>
+                  </div>
+
+                  <div style={{ marginBottom: "16px" }}>
+                    <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Volume</div>
+                    <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>{volumeName || '—'}</div>
+                    <div style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>{volumeSize}GB Block Storage</div>
+                  </div>
+
+                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "16px", marginTop: "auto" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                      <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Per second</span>
+                      <span style={{ fontSize: "12px", color: "#f0f0ff" }}>₹{cost.perSecond.toFixed(4)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                      <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Per hour</span>
+                      <span style={{ fontSize: "12px", color: "#f0f0ff", fontWeight: 600 }}>₹{cost.hourly.toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+                      <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Est. monthly</span>
+                      <span style={{ fontSize: "14px", color: "#a78bfa", fontWeight: 700 }}>₹{Math.round(cost.monthly).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div style={{ fontSize: "11px", color: "rgba(160,160,192,0.35)", lineHeight: 1.5 }}>
+                      Pay only for what you use. Billing stops on destroy.
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* DB Deploy Modal */}
+      {showDBModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }} onClick={() => setShowDBModal(false)}>
+          <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px", maxWidth: "800px", width: "90%", maxHeight: "90vh", overflowY: "auto", display: "flex" }} onClick={(e) => e.stopPropagation()}>
+            {/* Left: Form */}
+            <div style={{ flex: 1, padding: "28px", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 style={{ fontSize: "17px", fontWeight: 600, color: "#f0f0ff", margin: 0 }}>Deploy Managed DB</h3>
+                <button onClick={() => setShowDBModal(false)} style={{ background: "none", border: "none", color: "rgba(160,160,192,0.5)", fontSize: "20px", cursor: "pointer" }}>×</button>
+              </div>
+              <p style={{ fontSize: "13px", color: "rgba(160,160,192,0.4)", marginBottom: "20px" }}>Deploy a PostgreSQL database VM with managed backups.</p>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>DB Name</label>
+                <input type="text" placeholder="e.g. my-db" value={dbName} onChange={(e) => setDbName(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }} />
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Plan</label>
+                <select value={dbPlan} onChange={(e) => setDbPlan(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
+                  {deployPlans.map((p: any, i: number) => <option key={p.id + '-' + i} value={p.id}>{p.name} ({p.cpunumber} vCPU · {p.memory / 1024}GB)</option>)}
+                </select>
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Zone</label>
+                <select value={dbZone} onChange={(e) => setDbZone(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
+                  {deployZones.map((z: any, i: number) => <option key={z.id + '-' + i} value={z.id}>{z.name}</option>)}
+                </select>
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Network</label>
+                <select value={dbNetwork} onChange={(e) => setDbNetwork(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
+                  {deployNetworks.map((n: any, i: number) => <option key={n.id + '-' + i} value={n.id}>{n.name} ({n.type})</option>)}
+                </select>
+              </div>
+              <button onClick={handleDeployDB} disabled={dbLoading || balance.inr < (() => {
+                const plan = deployPlans.find((p: any) => p.id === dbPlan);
+                return plan ? calculateCost(plan.cpunumber || 1, plan.memory || 1024, plan.rootdisksize || 10).hourly * 1.5 : 0;
+              })()} style={{ width: "100%", height: "48px", background: "linear-gradient(135deg, #7c3aed, #a855f7)", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: 600, color: "#fff", cursor: "pointer", opacity: dbLoading ? 0.6 : 1 }}>
+                {dbLoading ? "Deploying..." : "Deploy DB"}
+              </button>
+              {(() => {
+                const plan = deployPlans.find((p: any) => p.id === dbPlan);
+                const cost = plan ? calculateCost(plan.cpunumber || 1, plan.memory || 1024, plan.rootdisksize || 10).hourly * 1.5 : 0;
+                if (balance.inr < cost) {
+                  return (
+                    <div style={{ marginTop: "12px", padding: "10px 14px", background: "rgba(255,71,87,0.08)", border: "1px solid rgba(255,71,87,0.2)", borderRadius: "10px", fontSize: "12px", color: "#ff4757" }}>
+                      ⚠️ Insufficient funds. Need ₹{cost.toFixed(2)}. Your balance: ₹{balance.inr.toFixed(2)}.
+                      <a href="/wallet" style={{ color: "#a78bfa", textDecoration: "underline" }}>Top up →</a>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Size (GB)</label>
-              <input type="number" min="1" max="1024" value={volumeSize} onChange={(e) => setVolumeSize(parseInt(e.target.value) || 10)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }} />
-            </div>
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Zone</label>
-              <select value={volumeZone} onChange={(e) => setVolumeZone(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
-                <option value="">Select zone</option>
-                {deployZones.map((z: any, i: number) => <option key={z.id + '-' + i} value={z.id}>{z.name}</option>)}
-              </select>
-            </div>
-            <button onClick={handleCreateVolume} disabled={volumeLoading} style={{ width: "100%", height: "48px", background: "linear-gradient(135deg, #7c3aed, #a855f7)", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: 600, color: "#fff", cursor: "pointer", opacity: volumeLoading ? 0.6 : 1 }}>
-              {volumeLoading ? "Creating..." : "Create Volume"}
-            </button>
+
+            {/* Right: Pricing Summary */}
+            {(() => {
+              const plan = deployPlans.find((p: any) => p.id === dbPlan);
+              const zone = deployZones.find((z: any) => z.id === dbZone);
+              const baseCost = plan ? calculateCost(plan.cpunumber || 1, plan.memory || 1024, plan.rootdisksize || 10) : null;
+              const cost = baseCost ? { ...baseCost, hourly: baseCost.hourly * 1.5, perSecond: baseCost.perSecond * 1.5, monthly: baseCost.monthly * 1.5 } : null;
+              return (
+                <div style={{ width: "260px", padding: "28px", background: "rgba(255,255,255,0.02)", display: "flex", flexDirection: "column" }}>
+                  <h4 style={{ fontSize: "13px", fontWeight: 600, color: "rgba(160,160,192,0.5)", margin: "0 0 20px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Summary</h4>
+
+                  <div style={{ marginBottom: "16px" }}>
+                    <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Region</div>
+                    <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>{zone?.name || '—'}</div>
+                  </div>
+
+                  <div style={{ marginBottom: "16px" }}>
+                    <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Plan</div>
+                    <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>{plan ? `${plan.name} · ${plan.cpunumber}vCPU` : '—'}</div>
+                    <div style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>{plan ? `${(plan.memory / 1024).toFixed(1)}GB RAM · ${plan.rootdisksize || 10}GB Disk` : ''}</div>
+                  </div>
+
+                  <div style={{ marginBottom: "16px" }}>
+                    <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Database</div>
+                    <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>PostgreSQL 15</div>
+                  </div>
+
+                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "16px", marginTop: "auto" }}>
+                    {cost && (
+                      <>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                          <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Per second</span>
+                          <span style={{ fontSize: "12px", color: "#f0f0ff" }}>₹{cost.perSecond.toFixed(4)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                          <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Per hour</span>
+                          <span style={{ fontSize: "12px", color: "#f0f0ff", fontWeight: 600 }}>₹{cost.hourly.toFixed(2)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+                          <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Est. monthly</span>
+                          <span style={{ fontSize: "14px", color: "#a78bfa", fontWeight: 700 }}>₹{Math.round(cost.monthly).toLocaleString('en-IN')}</span>
+                        </div>
+                        <div style={{ fontSize: "11px", color: "rgba(160,160,192,0.35)", lineHeight: 1.5 }}>
+                          DB premium applied (1.5x). Billing stops on destroy.
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

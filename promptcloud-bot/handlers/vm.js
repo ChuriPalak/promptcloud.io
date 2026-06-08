@@ -239,25 +239,50 @@ function register(bot) {
 
     const sess = store.getSession(tid);
     const balance = sess?.userId ? await store.getWalletBalance(sess.userId) : { inr: store.getBalance(tid) };
-    const volumeCost = 20;
-    if ((balance.inr || 0) < volumeCost) {
+
+    // Get disk offering specs for pricing
+    let disk;
+    try {
+      const disks = await cs.listDiskOfferings();
+      disk = disks.find(d => d.id === s.diskOfferingId);
+    } catch (e) { disk = null; }
+
+    const sizeGB = disk?.disksize || 10;
+    const hourlyCost = sizeGB * billing.PRICING.storage_per_gb_hour;
+    const upfrontCost = Math.ceil(hourlyCost * 24); // charge 1 day minimum for storage
+
+    if ((balance.inr || 0) < upfrontCost) {
       delete volumeState[chatId];
       return bot.sendMessage(chatId,
-        `❌ Insufficient balance. You need at least ₹${volumeCost} to create a volume.\nYour balance: ₹${(balance.inr || 0).toFixed(2)}`,
-        { reply_markup: { inline_keyboard: [[{ text: '➕ Top Up', callback_data: 'wallet_home' }]] } }
+        `❌ <b>Insufficient Funds</b>\n\n` +
+        `Volume: ${escape(name)}\n` +
+        `Size: ${sizeGB}GB\n` +
+        `Cost: <b>₹${hourlyCost.toFixed(2)}/hr</b> (₹${(hourlyCost * 24).toFixed(2)}/day)\n` +
+        `Upfront (1 day): <b>₹${upfrontCost}</b>\n\n` +
+        `Your balance: ₹${(balance.inr || 0).toFixed(2)}\n` +
+        `Need: ₹${(upfrontCost - (balance.inr || 0)).toFixed(2)} more`,
+        { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: '➕ Top Up', callback_data: 'wallet_home' }]] } }
       );
     }
 
     const m = await bot.sendMessage(chatId, '💾 Creating volume…');
     try {
-      await cs.createVolume({ name, zoneId: s.zoneId, diskOfferingId: s.diskOfferingId, size: 10 });
+      await cs.createVolume({ name, zoneId: s.zoneId, diskOfferingId: s.diskOfferingId, size: sizeGB });
       if (sess?.userId) {
-        await store.deductWalletBalance(sess.userId, volumeCost, 'INR', `Volume creation: ${name}`);
+        await store.deductWalletBalance(sess.userId, upfrontCost, 'INR', `Volume creation: ${name} (${sizeGB}GB)`);
       }
       delete volumeState[chatId];
-      bot.editMessageText(`✅ Volume <b>${escape(name)}</b> created! ₹${volumeCost} deducted. Check /volumes.`, {
-        chat_id: chatId, message_id: m.message_id, parse_mode: 'HTML'
-      });
+      const newBal = (balance.inr || 0) - upfrontCost;
+      bot.editMessageText(
+        `✅ <b>Volume Created!</b>\n\n` +
+        `Name: <b>${escape(name)}</b>\n` +
+        `Size: ${sizeGB}GB\n` +
+        `Rate: ₹${hourlyCost.toFixed(2)}/hr\n` +
+        `Upfront: ₹${upfrontCost} deducted\n` +
+        `Balance: ₹${newBal.toFixed(2)}\n\n` +
+        `Check /volumes.`,
+        { chat_id: chatId, message_id: m.message_id, parse_mode: 'HTML' }
+      );
     } catch (e) {
       delete volumeState[chatId];
       bot.editMessageText(`❌ Volume creation failed: ${escape(e.message)}`, { chat_id: chatId, message_id: m.message_id, parse_mode: 'HTML' });
@@ -379,26 +404,57 @@ function register(bot) {
 
     const sess = store.getSession(tid);
     const balance = sess?.userId ? await store.getWalletBalance(sess.userId) : { inr: store.getBalance(tid) };
-    const dbCost = 75;
-    if ((balance.inr || 0) < dbCost) {
+
+    // Get offering specs for dynamic pricing
+    let offering;
+    try {
+      const offs = await cs.listOfferings();
+      offering = offs.find(o => o.id === s.offeringId);
+    } catch (e) { offering = null; }
+
+    const cpu = offering?.cpunumber || 1;
+    const ramGB = (offering?.memory || 1024) / 1024;
+    const diskGB = offering?.rootdisksize || 10;
+    const hourlyCost = billing.calculateHourlyCost(cpu, ramGB * 1024, diskGB) * 1.5; // DB premium: 1.5x
+    const upfrontCost = Math.ceil(hourlyCost);
+
+    if ((balance.inr || 0) < upfrontCost) {
       delete dbState[chatId];
       return bot.sendMessage(chatId,
-        `❌ Insufficient balance. You need at least ₹${dbCost} to deploy a database.\nYour balance: ₹${(balance.inr || 0).toFixed(2)}`,
-        { reply_markup: { inline_keyboard: [[{ text: '➕ Top Up', callback_data: 'wallet_home' }]] } }
+        `❌ <b>Insufficient Funds</b>\n\n` +
+        `DB: ${escape(s.name)}\n` +
+        `Specs: ${cpu}vCPU, ${ramGB.toFixed(1)}GB RAM, ${diskGB}GB Disk\n` +
+        `Cost: <b>₹${hourlyCost.toFixed(2)}/hr</b> (DB premium)\n` +
+        `Upfront (1hr): <b>₹${upfrontCost}</b>\n\n` +
+        `Your balance: ₹${(balance.inr || 0).toFixed(2)}\n` +
+        `Need: ₹${(upfrontCost - (balance.inr || 0)).toFixed(2)} more`,
+        { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: '➕ Top Up', callback_data: 'wallet_home' }]] } }
       );
     }
 
     const dbType = DB_TEMPLATES.find(t => t.id === s.templateId)?.name || s.templateId;
-    const m = await bot.sendMessage(chatId, `🗄 Deploying ${dbType}…`);
+    const m = await bot.sendMessage(chatId, `🗄 Deploying ${escape(dbType)}…`, { parse_mode: 'HTML' });
     try {
-      await cs.deployVM({ name: s.name, zoneId: s.zoneId, offeringId: s.offeringId, templateId: s.templateId, networkId: s.networkId });
+      const vm = await cs.deployVM({ name: s.name, zoneId: s.zoneId, offeringId: s.offeringId, templateId: s.templateId, networkId: s.networkId });
       if (sess?.userId) {
-        await store.deductWalletBalance(sess.userId, dbCost, 'INR', `DB deployment: ${s.name} (${dbType})`);
+        await store.deductWalletBalance(sess.userId, upfrontCost, 'INR', `DB deploy upfront: ${s.name} (${dbType})`);
+        if (vm?.id) {
+          await billing.trackDeployment(sess.userId, vm.id, { name: s.name, cpunumber: cpu, memory: ramGB * 1024 });
+        }
       }
       delete dbState[chatId];
-      bot.editMessageText(`✅ Database <b>${escape(s.name)}</b> (${escape(dbType)}) is deploying! ₹${dbCost} deducted. Check /vms in a minute.`, {
-        chat_id: chatId, message_id: m.message_id, parse_mode: 'HTML'
-      });
+      const newBal = (balance.inr || 0) - upfrontCost;
+      bot.editMessageText(
+        `✅ <b>Database Deployed!</b>\n\n` +
+        `Name: <b>${escape(s.name)}</b>\n` +
+        `Type: ${escape(dbType)}\n` +
+        `Specs: ${cpu}vCPU, ${ramGB.toFixed(1)}GB RAM, ${diskGB}GB Disk\n` +
+        `Rate: ₹${hourlyCost.toFixed(2)}/hr\n` +
+        `Upfront: ₹${upfrontCost} deducted\n` +
+        `Balance: ₹${newBal.toFixed(2)}\n\n` +
+        `Check /vms in a minute.`,
+        { chat_id: chatId, message_id: m.message_id, parse_mode: 'HTML' }
+      );
     } catch (e) {
       delete dbState[chatId];
       bot.editMessageText(`❌ DB deploy failed: ${escape(e.message)}`, { chat_id: chatId, message_id: m.message_id, parse_mode: 'HTML' });
@@ -515,25 +571,56 @@ function register(bot) {
 
     const sess = store.getSession(tid);
     const balance = sess?.userId ? await store.getWalletBalance(sess.userId) : { inr: store.getBalance(tid) };
-    const deployCost = 50;
-    if ((balance.inr || 0) < deployCost) {
+
+    // Get offering specs for dynamic pricing
+    let offering;
+    try {
+      const offs = await cs.listOfferings();
+      offering = offs.find(o => o.id === s.offeringId);
+    } catch (e) { offering = null; }
+
+    const cpu = offering?.cpunumber || 1;
+    const ramGB = (offering?.memory || 1024) / 1024;
+    const diskGB = offering?.rootdisksize || 10;
+    const hourlyCost = billing.calculateHourlyCost(cpu, ramGB * 1024, diskGB);
+    const upfrontCost = Math.ceil(hourlyCost); // charge 1 hour minimum upfront
+
+    if ((balance.inr || 0) < upfrontCost) {
       delete deployState[chatId];
       return bot.sendMessage(chatId,
-        `❌ Insufficient balance. You need at least ₹${deployCost} to deploy a VM.\nYour balance: ₹${(balance.inr || 0).toFixed(2)}`,
-        { reply_markup: { inline_keyboard: [[{ text: '➕ Top Up', callback_data: 'wallet_home' }]] } }
+        `❌ <b>Insufficient Funds</b>\n\n` +
+        `VM: ${escape(s.name)}\n` +
+        `Specs: ${cpu}vCPU, ${ramGB.toFixed(1)}GB RAM, ${diskGB}GB Disk\n` +
+        `Cost: <b>₹${hourlyCost.toFixed(2)}/hr</b>\n` +
+        `Upfront (1hr): <b>₹${upfrontCost}</b>\n\n` +
+        `Your balance: ₹${(balance.inr || 0).toFixed(2)}\n` +
+        `Need: ₹${(upfrontCost - (balance.inr || 0)).toFixed(2)} more`,
+        { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: '➕ Top Up', callback_data: 'wallet_home' }]] } }
       );
     }
 
-    const m = await bot.sendMessage(chatId, '🚀 Deploying VM…');
+    const m = await bot.sendMessage(chatId, `🚀 Deploying VM <b>${escape(s.name)}</b>…`, { parse_mode: 'HTML' });
     try {
-      await cs.deployVM({ name: s.name, zoneId: s.zoneId, offeringId: s.offeringId, templateId: s.templateId, networkId: s.networkId });
+      const vm = await cs.deployVM({ name: s.name, zoneId: s.zoneId, offeringId: s.offeringId, templateId: s.templateId, networkId: s.networkId });
       if (sess?.userId) {
-        await store.deductWalletBalance(sess.userId, deployCost, 'INR', `VM deployment: ${s.name}`);
+        await store.deductWalletBalance(sess.userId, upfrontCost, 'INR', `VM deploy upfront: ${s.name}`);
+        // Track for ongoing billing
+        if (vm?.id) {
+          await billing.trackDeployment(sess.userId, vm.id, { name: s.name, cpunumber: cpu, memory: ramGB * 1024 });
+        }
       }
       delete deployState[chatId];
-      bot.editMessageText(`✅ VM <b>${escape(s.name)}</b> is deploying! ₹${deployCost} deducted from wallet. Check /vms in a minute.`, {
-        chat_id: chatId, message_id: m.message_id, parse_mode: 'HTML'
-      });
+      const newBal = (balance.inr || 0) - upfrontCost;
+      bot.editMessageText(
+        `✅ <b>VM Deployed!</b>\n\n` +
+        `Name: <b>${escape(s.name)}</b>\n` +
+        `Specs: ${cpu}vCPU, ${ramGB.toFixed(1)}GB RAM, ${diskGB}GB Disk\n` +
+        `Rate: ₹${hourlyCost.toFixed(2)}/hr\n` +
+        `Upfront: ₹${upfrontCost} deducted\n` +
+        `Balance: ₹${newBal.toFixed(2)}\n\n` +
+        `Check /vms in a minute.`,
+        { chat_id: chatId, message_id: m.message_id, parse_mode: 'HTML' }
+      );
     } catch (e) {
       delete deployState[chatId];
       bot.editMessageText(`❌ Deploy failed: ${escape(e.message)}`, { chat_id: chatId, message_id: m.message_id, parse_mode: 'HTML' });
