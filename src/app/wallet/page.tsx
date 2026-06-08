@@ -37,13 +37,15 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [selectedAmount, setSelectedAmount] = useState<number>(500);
   const [customAmount, setCustomAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "crypto">("razorpay");
+  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "crypto" | "coinbase">("razorpay");
   const [selectedCrypto, setSelectedCrypto] = useState(CRYPTO_WALLETS[0]);
   const [processing, setProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [txHistory, setTxHistory] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [coinbaseCharge, setCoinbaseCharge] = useState<any>(null);
+  const [coinbasePolling, setCoinbasePolling] = useState(false);
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
