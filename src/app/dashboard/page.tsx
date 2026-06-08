@@ -22,6 +22,56 @@ function calculateCost(cpu: number, ramMB: number, diskGB: number = 10) {
   };
 }
 
+function DBPricingSummary({ deployPlans, deployZones, dbPlan, dbZone }: { deployPlans: any[], deployZones: any[], dbPlan: string, dbZone: string }) {
+  const plan = deployPlans.find((p: any) => p.id === dbPlan);
+  const zone = deployZones.find((z: any) => z.id === dbZone);
+  const baseCost = plan ? calculateCost(plan.cpunumber || 1, plan.memory || 1024, plan.rootdisksize || 10) : null;
+  const cost = baseCost ? { ...baseCost, hourly: baseCost.hourly * 1.5, perSecond: baseCost.perSecond * 1.5, monthly: baseCost.monthly * 1.5 } : null;
+  return (
+    <div style={{ width: "260px", padding: "28px", background: "rgba(255,255,255,0.02)", display: "flex", flexDirection: "column" }}>
+      <h4 style={{ fontSize: "13px", fontWeight: 600, color: "rgba(160,160,192,0.5)", margin: "0 0 20px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Summary</h4>
+
+      <div style={{ marginBottom: "16px" }}>
+        <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Region</div>
+        <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>{zone?.name || '—'}</div>
+      </div>
+
+      <div style={{ marginBottom: "16px" }}>
+        <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Plan</div>
+        <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>{plan ? `${plan.name} · ${plan.cpunumber}vCPU` : '—'}</div>
+        <div style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>{plan ? `${(plan.memory / 1024).toFixed(1)}GB RAM · ${plan.rootdisksize || 10}GB Disk` : ''}</div>
+      </div>
+
+      <div style={{ marginBottom: "16px" }}>
+        <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Database</div>
+        <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>PostgreSQL 15</div>
+      </div>
+
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "16px", marginTop: "auto" }}>
+        {cost && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+              <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Per second</span>
+              <span style={{ fontSize: "12px", color: "#f0f0ff" }}>₹{cost.perSecond.toFixed(4)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+              <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Per hour</span>
+              <span style={{ fontSize: "12px", color: "#f0f0ff", fontWeight: 600 }}>₹{cost.hourly.toFixed(2)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+              <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Est. monthly</span>
+              <span style={{ fontSize: "14px", color: "#a78bfa", fontWeight: 700 }}>₹{Math.round(cost.monthly).toLocaleString('en-IN')}</span>
+            </div>
+            <div style={{ fontSize: "11px", color: "rgba(160,160,192,0.35)", lineHeight: 1.5 }}>
+              DB premium applied (1.5x). Billing stops on destroy.
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Load Razorpay checkout script
 declare global {
   interface Window {
@@ -404,44 +454,53 @@ export default function DashboardPage() {
   };
 
   // Fetch deploy options when modal opens
+  // Fetch deploy options when ANY modal opens (VM, Volume, or DB)
   useEffect(() => {
-    if (!showDeployModal || !csKeys.apiKey || !token) return;
+    if ((!showDeployModal && !showCreateVolumeModal && !showDBModal) || !csKeys.apiKey || !token) return;
     const fetchOptions = async () => {
       try {
         const headers = { Authorization: `Bearer ${token}` };
-        const [plansRes, templatesRes, zonesRes, networksRes] = await Promise.all([
+        const [plansRes, templatesRes, zonesRes, networksRes, diskOfferingsRes] = await Promise.all([
           fetch(`${API_BASE}/api/cloudstack-proxy?${new URLSearchParams({ apiKey: csKeys.apiKey, secretKey: csKeys.secretKey, command: "listServiceOfferings", response: "json" })}`, { headers }),
           fetch(`${API_BASE}/api/cloudstack-proxy?${new URLSearchParams({ apiKey: csKeys.apiKey, secretKey: csKeys.secretKey, command: "listTemplates", templatefilter: "featured", response: "json" })}`, { headers }),
           fetch(`${API_BASE}/api/cloudstack-proxy?${new URLSearchParams({ apiKey: csKeys.apiKey, secretKey: csKeys.secretKey, command: "listZones", response: "json" })}`, { headers }),
           fetch(`${API_BASE}/api/cloudstack-proxy?${new URLSearchParams({ apiKey: csKeys.apiKey, secretKey: csKeys.secretKey, command: "listNetworks", response: "json" })}`, { headers }),
+          fetch(`${API_BASE}/api/cloudstack-proxy?${new URLSearchParams({ apiKey: csKeys.apiKey, secretKey: csKeys.secretKey, command: "listDiskOfferings", response: "json" })}`, { headers }),
         ]);
         const plans = await plansRes.json();
         const templates = await templatesRes.json();
         const zones = await zonesRes.json();
         const networks = await networksRes.json();
+        const diskOfferings = await diskOfferingsRes.json();
         if (plans.listserviceofferingsresponse?.serviceoffering) {
           setDeployPlans(plans.listserviceofferingsresponse.serviceoffering);
-          setSelectedPlan(plans.listserviceofferingsresponse.serviceoffering[0]?.id || "");
+          if (!selectedPlan) setSelectedPlan(plans.listserviceofferingsresponse.serviceoffering[0]?.id || "");
         }
         if (templates.listtemplatesresponse?.template) {
           setDeployTemplates(templates.listtemplatesresponse.template);
-          setSelectedTemplate(templates.listtemplatesresponse.template[0]?.id || "");
+          if (!selectedTemplate) setSelectedTemplate(templates.listtemplatesresponse.template[0]?.id || "");
         }
         if (zones.listzonesresponse?.zone) {
           setDeployZones(zones.listzonesresponse.zone);
-          setSelectedZone(zones.listzonesresponse.zone[0]?.id || "");
+          if (!selectedZone) setSelectedZone(zones.listzonesresponse.zone[0]?.id || "");
+          if (!volumeZone) setVolumeZone(zones.listzonesresponse.zone[0]?.id || "");
+          if (!dbZone) setDbZone(zones.listzonesresponse.zone[0]?.id || "");
         }
         if (networks.listnetworksresponse?.network) {
           const usableNetworks = networks.listnetworksresponse.network.filter((n: any) => n.canusefordeploy === true);
           setDeployNetworks(usableNetworks);
-          setSelectedNetwork(usableNetworks[0]?.id || "");
+          if (!selectedNetwork) setSelectedNetwork(usableNetworks[0]?.id || "");
+          if (!dbNetwork) setDbNetwork(usableNetworks[0]?.id || "");
+        }
+        if (diskOfferings.listdiskofferingsresponse?.diskoffering) {
+          setVolumeDiskOfferings(diskOfferings.listdiskofferingsresponse.diskoffering);
         }
       } catch (e) {
         console.error("Failed to fetch deploy options:", e);
       }
     };
     fetchOptions();
-  }, [showDeployModal, csKeys, token]);
+  }, [showDeployModal, showCreateVolumeModal, showDBModal, csKeys, token]);
   const [vmFilter, setVmFilter] = useState("all");
   const filteredVMs = vmFilter === "all" ? csVMs : csVMs.filter((v: any) => v.state.toLowerCase() === vmFilter);
   const kpiTotal = csVMs.length;
@@ -1146,6 +1205,15 @@ export default function DashboardPage() {
                   {deployZones.map((z: any, i: number) => <option key={z.id + '-' + i} value={z.id}>{z.name}</option>)}
                 </select>
               </div>
+              {volumeDiskOfferings.length > 0 && (
+                <div style={{ marginBottom: "16px" }}>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: 500, color: "rgba(255,255,255,0.35)", marginBottom: "8px", letterSpacing: "0.07em", textTransform: "uppercase" }}>Disk Offering (Optional)</label>
+                  <select value={volumeDiskOffering} onChange={(e) => setVolumeDiskOffering(e.target.value)} style={{ width: "100%", height: "46px", padding: "0 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "13px", color: "#fff", outline: "none" }}>
+                    <option value="">Custom size</option>
+                    {volumeDiskOfferings.map((d: any, i: number) => <option key={d.id + '-' + i} value={d.id}>{d.name} ({d.disksize}GB)</option>)}
+                  </select>
+                </div>
+              )}
               <button onClick={handleCreateVolume} disabled={volumeLoading || balance.inr < (volumeSize * PRICING.storage_per_gb_hour * 24)} style={{ width: "100%", height: "48px", background: "linear-gradient(135deg, #7c3aed, #a855f7)", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: 600, color: "#fff", cursor: "pointer", opacity: volumeLoading ? 0.6 : 1 }}>
                 {volumeLoading ? "Creating..." : "Create Volume"}
               </button>
@@ -1255,55 +1323,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Right: Pricing Summary */}
-            {(() => {
-              const plan = deployPlans.find((p: any) => p.id === dbPlan);
-              const zone = deployZones.find((z: any) => z.id === dbZone);
-              const baseCost = plan ? calculateCost(plan.cpunumber || 1, plan.memory || 1024, plan.rootdisksize || 10) : null;
-              const cost = baseCost ? { ...baseCost, hourly: baseCost.hourly * 1.5, perSecond: baseCost.perSecond * 1.5, monthly: baseCost.monthly * 1.5 } : null;
-              return (
-                <div style={{ width: "260px", padding: "28px", background: "rgba(255,255,255,0.02)", display: "flex", flexDirection: "column" }}>
-                  <h4 style={{ fontSize: "13px", fontWeight: 600, color: "rgba(160,160,192,0.5)", margin: "0 0 20px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Summary</h4>
-
-                  <div style={{ marginBottom: "16px" }}>
-                    <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Region</div>
-                    <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>{zone?.name || '—'}</div>
-                  </div>
-
-                  <div style={{ marginBottom: "16px" }}>
-                    <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Plan</div>
-                    <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>{plan ? `${plan.name} · ${plan.cpunumber}vCPU` : '—'}</div>
-                    <div style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>{plan ? `${(plan.memory / 1024).toFixed(1)}GB RAM · ${plan.rootdisksize || 10}GB Disk` : ''}</div>
-                  </div>
-
-                  <div style={{ marginBottom: "16px" }}>
-                    <div style={{ fontSize: "10px", color: "rgba(160,160,192,0.4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Database</div>
-                    <div style={{ fontSize: "13px", color: "#f0f0ff", fontWeight: 500 }}>PostgreSQL 15</div>
-                  </div>
-
-                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "16px", marginTop: "auto" }}>
-                    {cost && (
-                      <>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                          <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Per second</span>
-                          <span style={{ fontSize: "12px", color: "#f0f0ff" }}>₹{cost.perSecond.toFixed(4)}</span>
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                          <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Per hour</span>
-                          <span style={{ fontSize: "12px", color: "#f0f0ff", fontWeight: 600 }}>₹{cost.hourly.toFixed(2)}</span>
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
-                          <span style={{ fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>Est. monthly</span>
-                          <span style={{ fontSize: "14px", color: "#a78bfa", fontWeight: 700 }}>₹{Math.round(cost.monthly).toLocaleString('en-IN')}</span>
-                        </div>
-                        <div style={{ fontSize: "11px", color: "rgba(160,160,192,0.35)", lineHeight: 1.5 }}>
-                          DB premium applied (1.5x). Billing stops on destroy.
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
+            <DBPricingSummary deployPlans={deployPlans} deployZones={deployZones} dbPlan={dbPlan} dbZone={dbZone} />
           </div>
         </div>
       )}

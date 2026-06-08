@@ -318,10 +318,10 @@ function register(bot) {
   // ── DB Deploy Wizard ─────────────────────────────────────
   const dbState = {};
   const DB_TEMPLATES = [
-    { id: 'mysql',    name: 'MySQL 8.0',       emoji: '🐬' },
-    { id: 'postgres', name: 'PostgreSQL 15',    emoji: '🐘' },
-    { id: 'mongodb',  name: 'MongoDB 6.0',      emoji: '🍃' },
-    { id: 'redis',    name: 'Redis 7',          emoji: '🔴' },
+    { id: 'c7ae52cc-9519-49e0-8e7b-6df81976011b', name: 'Ubuntu 20.04 + PostgreSQL',    emoji: '🐘', pkg: 'postgresql' },
+    { id: 'c7ae52cc-9519-49e0-8e7b-6df81976011b', name: 'Ubuntu 20.04 + MySQL',         emoji: '🐬', pkg: 'mysql-server' },
+    { id: 'c7ae52cc-9519-49e0-8e7b-6df81976011b', name: 'Ubuntu 20.04 + MongoDB',       emoji: '🍃', pkg: 'mongodb' },
+    { id: 'c7ae52cc-9519-49e0-8e7b-6df81976011b', name: 'Ubuntu 20.04 + Redis',         emoji: '🔴', pkg: 'redis' },
   ];
 
   async function deployDBStart(chatId, tid) {
@@ -347,6 +347,7 @@ function register(bot) {
     const m = await bot.sendMessage(chatId, '⏳ Loading offerings…');
     try {
       const offs = await cs.listOfferings();
+      dbState[chatId].offerings = offs;
       const buttons = offs.slice(0, 8).map(o => {
         const cpu = o.cpunumber || '?';
         const ram = o.memory ? `${Math.round(o.memory / 1024)}GB` : '?MB';
@@ -363,7 +364,8 @@ function register(bot) {
   }
 
   function deployDBOffering(chatId, offeringId) {
-    dbState[chatId] = { ...dbState[chatId], offeringId };
+    const offering = dbState[chatId]?.offerings?.find(o => o.id === offeringId);
+    dbState[chatId] = { ...dbState[chatId], offeringId, offering };
     const buttons = DB_TEMPLATES.map(t => [{ text: `${t.emoji} ${t.name}`, callback_data: `dbt:${t.id}` }]);
     buttons.push([{ text: '❌ Cancel', callback_data: 'main_menu' }]);
     bot.sendMessage(chatId, '🗄 <b>Deploy Database</b> — Step 3/4: Pick a database:', {
@@ -468,8 +470,24 @@ function register(bot) {
     const name = text.trim() === 'skip' ? ('db-' + Date.now().toString(36)) : text.trim();
     dbState[chatId].name = name;
     const dbType = DB_TEMPLATES.find(t => t.id === s.templateId)?.name || s.templateId;
+
+    // Calculate pricing for summary
+    const cpu = s.offering?.cpunumber || 1;
+    const ramGB = (s.offering?.memory || 1024) / 1024;
+    const diskGB = s.offering?.rootdisksize || 10;
+    const hourlyCost = billing.calculateHourlyCost(cpu, ramGB * 1024, diskGB) * 1.5;
+    const upfrontCost = Math.ceil(hourlyCost);
+
     bot.sendMessage(chatId,
-      `✅ <b>Ready to deploy database!</b>\n\nName: ${escape(name)}\nType: ${escape(dbType)}\nZone: ${escape(s.zoneId)}\nPlan: ${escape(s.offeringId)}\n\nConfirm?`,
+      `✅ <b>Ready to deploy database!</b>\n\n` +
+      `Name: <b>${escape(name)}</b>\n` +
+      `Type: ${escape(dbType)}\n` +
+      `Zone: ${escape(s.zoneId)}\n` +
+      `Plan: ${escape(s.offering?.name || s.offeringId)}\n` +
+      `Specs: ${cpu}vCPU, ${ramGB.toFixed(1)}GB RAM, ${diskGB}GB Disk\n` +
+      `Rate: <b>₹${hourlyCost.toFixed(2)}/hr</b> (DB premium 1.5x)\n` +
+      `Upfront: <b>₹${upfrontCost}</b>\n\n` +
+      `Confirm?`,
       {
         parse_mode: 'HTML',
         reply_markup: { inline_keyboard: [[

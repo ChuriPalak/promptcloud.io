@@ -14,6 +14,15 @@ const store = require('./utils/store');
 const mailer = require('./utils/mailer');
 const payments = require('./payments');
 
+// Coinbase Commerce client
+const { Client, Webhook } = require('coinbase-commerce-node');
+let coinbaseClient = null;
+if (process.env.COINBASE_API_KEY) {
+  Client.init(process.env.COINBASE_API_KEY);
+  coinbaseClient = Client;
+  console.log('✅ Coinbase Commerce initialized');
+}
+
 const app = express();
 
 // CORS — allow Next.js dev server
@@ -65,17 +74,50 @@ app.get('/', (req, res) => {
 
 // ── Auth routes ────────────────────────────────────────────
 
-// POST /api/auth/register
-// Body: { email, password, name, company_name?, phone? }
-app.post('/api/auth/register', async (req, res) => {
-  const { email, password, name, company_name, phone } = req.body || {};
-  if (!email || !password || !name) {
-    return res.status(400).json({ error: 'email, password, and name are required' });
-  }
-  if (!/^[^\s@]+@[^\s@]+.[^\s@]+$/.test(email)) {
+// POST /api/auth/register-send-otp
+// Body: { email }
+// Sends OTP to email for registration (user doesn't need to exist yet)
+app.post('/api/auth/register-send-otp', async (req, res) => {
+  const { email } = req.body || {};
+  if (!email || !/^[^\s@]+@[^\s@]+.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: 'Valid email is required' });
   }
 
+  // Check if email already registered
+  const existing = await store.getUserByEmail(email);
+  if (existing) return res.status(400).json({ error: 'Email already registered' });
+
+  const code = mailer.generateOTP();
+  const syntheticTid = syntheticTidFromEmail(email);
+  store.storeOTP(email.toLowerCase(), code, syntheticTid);
+
+  try {
+    await mailer.sendOTP(email, code);
+    res.json({ ok: true, message: 'OTP sent to email' });
+  } catch (e) {
+    console.error('register-send-otp error:', e.message);
+    res.status(500).json({ error: 'Failed to send OTP email' });
+  }
+});
+
+// POST /api/auth/register-verify
+// Body: { email, otp, name, password, phone?, company_name? }
+// Verifies OTP and creates user account
+app.post('/api/auth/register-verify', async (req, res) => {
+  const { email, otp, name, password, phone, company_name } = req.body || {};
+  if (!email || !otp || !name || !password) {
+    return res.status(400).json({ error: 'email, otp, name, and password are required' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+
+  const result = store.verifyOTP(email.toLowerCase(), otp);
+  if (!result.ok) {
+    return res.status(400).json({ error: result.reason });
+  }
+
+  // Check again if email already registered
   const existing = await store.getUserByEmail(email);
   if (existing) return res.status(400).json({ error: 'Email already registered' });
 
@@ -87,9 +129,9 @@ app.post('/api/auth/register', async (req, res) => {
     name,
     company_name: company_name || null,
     phone: phone || null,
+    is_verified: 1,
   });
 
-  // Mirror into shared in-memory session so bot sees this user too
   const syntheticTid = syntheticTidFromEmail(user.email);
   store.setSession(syntheticTid, {
     userId: user.id,
@@ -100,7 +142,25 @@ app.post('/api/auth/register', async (req, res) => {
     txHistory: [],
   });
 
-  res.json({ success: true, userId: user.id, message: 'Registration successful' });
+  const token = jwt.sign(
+    { tid: syntheticTid, email: user.email, userId: user.id },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  res.json({
+    success: true,
+    token,
+    userId: user.id,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      company_name: user.company_name,
+      wallet_balance: user.wallet_balance,
+      wallet_balance_xdc: user.wallet_balance_xdc,
+    },
+  });
 });
 
 // POST /api/auth/send-otp
@@ -469,6 +529,106 @@ app.post('/api/payments/crypto/notify', authMiddleware, async (req, res) => {
     txnHash: txnHash || null,
     message: 'Crypto payment logged for manual review. Balance will be confirmed within 30 minutes.',
   });
+});
+
+// ── Coinbase Commerce routes ─────────────────────────────
+
+// POST /api/payments/coinbase/create — Create a Coinbase Commerce charge
+app.post('/api/payments/coinbase/create', authMiddleware, async (req, res) => {
+  if (!coinbaseClient) {
+    return res.status(503).json({ error: 'Coinbase Commerce not configured' });
+  }
+  const { amount, currency = 'INR', cryptoCurrency = 'XDC' } = req.body || {};
+  const amt = parseFloat(amount);
+  if (isNaN(amt) || amt < 1) {
+    return res.status(400).json({ error: 'Valid amount required' });
+  }
+
+  try {
+    const { Charge } = require('coinbase-commerce-node');
+    const charge = await Charge.create({
+      name: 'PromptCloud Wallet Top-up',
+      description: `Top-up ₹${amt} via ${cryptoCurrency}`,
+      local_price: { amount: amt.toString(), currency: currency },
+      pricing_type: 'fixed_price',
+      metadata: {
+        user_id: req.user.userId,
+        email: req.user.email,
+        amount_inr: amt,
+        requested_crypto: cryptoCurrency,
+      },
+    });
+
+    // Store pending charge
+    store.createPendingPayment({
+      user_id: req.user.userId,
+      charge_id: charge.id,
+      amount: amt,
+      currency: 'INR',
+      status: 'pending',
+      method: 'coinbase',
+    });
+
+    res.json({
+      ok: true,
+      chargeId: charge.id,
+      hostedUrl: charge.hosted_url,
+      qrCode: charge.code,
+      expiresAt: charge.expires_at,
+      pricing: charge.pricing,
+      addresses: charge.addresses,
+    });
+  } catch (e) {
+    console.error('Coinbase charge error:', e);
+    res.status(500).json({ error: 'Failed to create charge', details: e.message });
+  }
+});
+
+// GET /api/payments/coinbase/charge/:id — Check charge status
+app.get('/api/payments/coinbase/charge/:id', authMiddleware, async (req, res) => {
+  if (!coinbaseClient) {
+    return res.status(503).json({ error: 'Coinbase Commerce not configured' });
+  }
+  try {
+    const { Charge } = require('coinbase-commerce-node');
+    const charge = await Charge.retrieve(req.params.id);
+    res.json({
+      id: charge.id,
+      status: charge.status,
+      pricing: charge.pricing,
+      payments: charge.payments,
+      hostedUrl: charge.hosted_url,
+      expiresAt: charge.expires_at,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to retrieve charge' });
+  }
+});
+
+// POST /api/payments/coinbase/webhook — Coinbase webhook (no auth, uses signature)
+app.post('/api/payments/coinbase/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const signature = req.headers['x-cc-webhook-signature'];
+  if (!signature || !process.env.COINBASE_WEBHOOK_SECRET) {
+    return res.status(400).json({ error: 'Missing signature or webhook secret' });
+  }
+
+  try {
+    const event = Webhook.verifyEventBody(req.body, signature, process.env.COINBASE_WEBHOOK_SECRET);
+    
+    if (event.type === 'charge:confirmed') {
+      const charge = event.data;
+      const { user_id, amount_inr } = charge.metadata || {};
+      if (user_id && amount_inr) {
+        await store.addWalletBalance(user_id, parseFloat(amount_inr), 'INR', `Coinbase ${charge.id}`);
+        console.log(`✅ Credited ₹${amount_inr} to user ${user_id} via Coinbase`);
+      }
+    }
+    
+    res.json({ received: true });
+  } catch (e) {
+    console.error('Webhook verification failed:', e);
+    res.status(400).json({ error: 'Invalid signature' });
+  }
 });
 
 // ── Instance / Deployment routes ───────────────────────────

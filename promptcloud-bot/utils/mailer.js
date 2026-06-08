@@ -25,7 +25,7 @@ function generateOTP() {
 async function sendOTP(email, code) {
   const expiry = process.env.OTP_EXPIRY_MINUTES || '10';
   const mail = {
-    from:    `"PromptCloud" <${process.env.SMTP_USER}>`,
+    from:    `"PromptCloud" <${process.env.SMTP_USER || 'noreply@promptcloud.io'}>`,
     to:      email,
     subject: `${code} — Your PromptCloud verification code`,
     text:    `Your PromptCloud verification code is: ${code}\n\nThis code expires in ${expiry} minutes.\n\nIf you didn't request this, ignore this email.`,
@@ -40,7 +40,9 @@ async function sendOTP(email, code) {
       </div>
     `,
   };
-  await getTransporter().sendMail(mail);
+  const info = await getTransporter().sendMail(mail);
+  console.log('[MAILER] OTP sent to', email, '- MessageId:', info.messageId);
+  return info;
 }
 
 module.exports = { generateOTP, sendOTP };

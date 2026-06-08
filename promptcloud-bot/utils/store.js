@@ -93,6 +93,8 @@ db.serialize(() => {
     utr_number TEXT,
     status TEXT DEFAULT 'pending',
     screenshot_path TEXT,
+    charge_id TEXT,
+    method TEXT DEFAULT 'upi',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     verified_at DATETIME,
     verified_by TEXT,
@@ -236,12 +238,12 @@ async function getTransactions(userId, limit = 50) {
   );
 }
 
-// ── Pending payments (for UTR-based UPI verification) ──────
-async function createPendingPayment({ userId, telegramId, amount, currency = 'INR', utrNumber, screenshotPath }) {
+// ── Pending payments (for UTR-based UPI verification + Coinbase) ──────
+async function createPendingPayment({ userId, telegramId, amount, currency = 'INR', utrNumber, screenshotPath, chargeId, method = 'upi' }) {
   const id = require('uuid').v4();
   await dbRun(
-    'INSERT INTO pending_payments (id, user_id, telegram_id, amount, currency, utr_number, screenshot_path, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, userId, telegramId, amount, currency, utrNumber || null, screenshotPath || null, 'pending']
+    'INSERT INTO pending_payments (id, user_id, telegram_id, amount, currency, utr_number, screenshot_path, charge_id, method, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, userId, telegramId || null, amount, currency, utrNumber || null, screenshotPath || null, chargeId || null, method, 'pending']
   );
   return id;
 }

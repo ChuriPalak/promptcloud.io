@@ -67,9 +67,31 @@ function register(bot) {
   }
 
   async function createVolumeZone(chatId, zoneId) {
-    volumeState[chatId] = { ...volumeState[chatId], zoneId, step: 'size' };
+    volumeState[chatId] = { ...volumeState[chatId], zoneId, step: 'disk' };
+    const m = await bot.sendMessage(chatId, '⏳ Loading disk offerings…');
+    try {
+      const disks = await cs.listDiskOfferings();
+      if (!disks.length) {
+        return bot.editMessageText('❌ No disk offerings available.', { chat_id: chatId, message_id: m.message_id });
+      }
+      const buttons = disks.slice(0, 8).map(d => {
+        const sizeText = d.iscustomized ? 'Custom size' : `${d.disksize || '?'}GB`;
+        return [{ text: `${d.name} (${sizeText})`, callback_data: `vol_disk:${d.id}` }];
+      });
+      buttons.push([{ text: '❌ Cancel', callback_data: 'vol_cancel' }]);
+      bot.editMessageText('💾 <b>Step 3/5</b> — Pick disk type:', {
+        chat_id: chatId, message_id: m.message_id,
+        parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons }
+      });
+    } catch (e) {
+      bot.editMessageText(`❌ ${escape(e.message)}`, { chat_id: chatId, message_id: m.message_id, parse_mode: 'HTML' });
+    }
+  }
+
+  async function createVolumeDisk(chatId, diskOfferingId) {
+    volumeState[chatId] = { ...volumeState[chatId], diskOfferingId, step: 'size' };
     bot.sendMessage(chatId,
-      `✏️ <b>Step 3/4</b> — Enter size in GB \\(e\.g\. <b>10</b>, <b>50</b>, <b>100</b>\\):\n\n` +
+      `✏️ <b>Step 4/5</b> — Enter size in GB \\(e\.g\. <b>10</b>, <b>50</b>, <b>100</b>\\):\n\n` +
       `_Pricing: ₹0\.5 per GB per hour_`,
       { parse_mode: 'HTML' }
     );
@@ -100,6 +122,7 @@ function register(bot) {
       `✅ <b>Ready to create volume!</b>\n\n` +
       `Name: \`${escape(s.name)}\`\n` +
       `Zone: \`${escape(s.zoneId)}\`\n` +
+      `Disk: \`${escape(s.diskOfferingId)}\`\n` +
       `Size: \`${size} GB\`\n` +
       `Cost: ₹${cost.toFixed(2)}\\/hour\n\n` +
       `Confirm?`,
