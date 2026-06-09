@@ -1367,4 +1367,5 @@ function KpiCard({ label, value, color }: any) {
     </div>
   );
 }
+}
 
