@@ -135,10 +135,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const t = localStorage.getItem("promptcloud_token");
-    if (!t) { 
+    if (!t) {
       setLoading(false);
-      router.push("/login"); 
-      return; 
+      router.push("/login");
+      return;
     }
     setToken(t);
   }, [router]);
@@ -178,7 +178,7 @@ export default function DashboardPage() {
     }
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      
+
       // Fetch VMs
       const vmParams = new URLSearchParams({
         apiKey: csKeys.apiKey,
@@ -512,8 +512,8 @@ export default function DashboardPage() {
     return (
       <div style={{ minHeight: "100vh", background: "#07040f", color: "#e0e0ff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px" }}>
         <div style={{ color: "#a78bfa" }}>Loading…</div>
-        <button 
-          onClick={() => setLoading(false)} 
+        <button
+          onClick={() => setLoading(false)}
           style={{ background: "rgba(124,58,237,0.2)", border: "1px solid rgba(168,85,247,0.3)", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", color: "#e0aaff", cursor: "pointer" }}
         >
           Force Load Dashboard
@@ -785,7 +785,7 @@ export default function DashboardPage() {
                       <tr key={vol.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
                         <td style={{ padding: "12px 20px", fontSize: "13px", color: "#f0f0ff" }}>{vol.name || "—"}</td>
                         <td style={{ padding: "12px 20px", fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>{vol.vmname || "Detached"}</td>
-                        <td style={{ padding: "12px 20px", fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>{(vol.size / (1024**3)).toFixed(1)} GB</td>
+                        <td style={{ padding: "12px 20px", fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>{(vol.size / (1024 ** 3)).toFixed(1)} GB</td>
                         <td style={{ padding: "12px 20px", fontSize: "12px", color: "rgba(160,160,192,0.5)" }}>{vol.type || "—"}</td>
                         <td style={{ padding: "12px 20px" }}>
                           <span style={{ fontSize: "11px", padding: "3px 10px", borderRadius: "6px", background: vol.state === "Ready" ? "rgba(46,213,115,0.1)" : "rgba(255,165,0,0.1)", color: vol.state === "Ready" ? "#2ed573" : "#ffa500", border: `1px solid ${vol.state === "Ready" ? "rgba(46,213,115,0.2)" : "rgba(255,165,0,0.2)"}` }}>
